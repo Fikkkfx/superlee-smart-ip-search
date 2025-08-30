@@ -17,7 +17,7 @@ export class StoryService {
       // Berdasarkan dokumentasi, gunakan GET /assets dengan query parameter
       const response = await axios.get(`${this.apiBaseUrl}/assets`, {
         headers: {
-          'X-API-Key': this.apiKey,
+          ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
           'Accept': 'application/json'
         },
         params: {
