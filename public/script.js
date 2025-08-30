@@ -225,7 +225,7 @@ async function handleSearch(e) {
             // Add bot response
             addMessage({
                 type: 'bot',
-                content: result.summary || (result.searchType === 'ipid' ? `Detail IPID siap ditampilkan.` : `Search complete! Found ${result.totalResults} results for "${query}".`),
+                content: result.summary || (result.searchType === 'ipid' ? `IPID details are ready.` : `Search complete! Found ${result.totalResults} results for "${query}".`),
                 timestamp: new Date(),
                 status: 'sent'
             });
@@ -282,7 +282,7 @@ function handleVoiceInput() {
     const recognition = new webkitSpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'id-ID';
+    recognition.lang = 'en-US';
     
     recognition.onstart = () => {
         elements.voiceBtn.classList.add('recording');
@@ -501,7 +501,7 @@ function showTypingIndicator() {
             <div class="typing-dot"></div>
             <div class="typing-dot"></div>
         </div>
-        <span>Story AI sedang mencari...</span>
+        <span>Story AI is searching...</span>
     `;
     
     elements.messagesArea.appendChild(typingDiv);
@@ -606,13 +606,13 @@ function createSummaryElement(searchResult) {
             <div class="summary-icon">
                 <i class="fas fa-search"></i>
             </div>
-            <h3 class="summary-title">Ringkasan Pencarian</h3>
+            <h3 class="summary-title">Search Summary</h3>
         </div>
         <div class="summary-text">${searchResult.summary}</div>
         <div class="summary-meta">
             <span>Query: "${searchResult.query}"</span>
             <span>•</span>
-            <span>${searchResult.totalResults} hasil ditemukan</span>
+            <span>${searchResult.totalResults} results found</span>
             <span>•</span>
             <span>${formatTime(new Date(searchResult.timestamp))}</span>
         </div>
@@ -748,14 +748,14 @@ function getLicenseText(licenseTerms) {
 }
 
 function formatTime(date) {
-    return new Date(date).toLocaleTimeString('id-ID', {
+    return new Date(date).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit'
     });
 }
 
 function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -769,10 +769,10 @@ function setLoading(loading) {
     
     if (loading) {
         elements.sendBtn.classList.add('loading');
-        elements.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
+        elements.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
     } else {
         elements.sendBtn.classList.remove('loading');
-        elements.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Kirim</span>';
+        elements.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Send</span>';
     }
 }
 
@@ -808,7 +808,7 @@ function loadHistoryModal() {
     if (!historyContent) return;
     
     if (searchHistory.length === 0) {
-        historyContent.innerHTML = '<div class="history-empty">Belum ada riwayat pencarian.</div>';
+        historyContent.innerHTML = '<div class="history-empty">No search history yet.</div>';
         return;
     }
     
@@ -816,7 +816,7 @@ function loadHistoryModal() {
         <div class="history-item" onclick="repeatSearch('${item.query}')">
             <div class="history-query">${item.query}</div>
             <div class="history-meta">
-                <span>${item.totalResults} hasil</span>
+                <span>${item.totalResults} results</span>
                 <span>${formatTime(new Date(item.timestamp))}</span>
             </div>
         </div>
