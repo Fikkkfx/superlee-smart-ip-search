@@ -6,6 +6,7 @@ let isLoading = false;
 let searchHistory = [];
 let currentUser = { id: 'user-1', name: 'You' };
 let activeFilters = { mediaType: null, license: null, creator: null };
+let appBgSet = false;
 
 // DOM Elements
 const elements = {
