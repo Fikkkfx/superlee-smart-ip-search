@@ -477,6 +477,45 @@ body {
     gap: 1.5rem;
 }
 
+/* IPID Detail */
+.ipid-detail { margin-top: 1rem; }
+.ipid-card {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow), 0 6px 0 rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: relative;
+}
+.ipid-card.mock { border-style: dashed; }
+.pixel-badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: #fde68a;
+    color: #7c2d12;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.12);
+}
+.ipid-media { background: var(--background); display: flex; align-items: center; justify-content: center; }
+.ipid-media img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.ipid-content { padding: 1rem 1.25rem; }
+.ipid-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
+.ipid-desc { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 0.75rem; }
+.ipid-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+.ipid-tags .tag { padding: 0.25rem 0.5rem; background: var(--background); color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; }
+.ipid-tags .tag.success { background: #dcfce7; color: #166534; }
+.ipid-actions { display: flex; gap: 0.5rem; }
+
+@media (max-width: 768px) {
+  .ipid-card { grid-template-columns: 1fr; }
+}
+
 .result-card {
     background: var(--surface);
     border: 1px solid var(--border-color);
