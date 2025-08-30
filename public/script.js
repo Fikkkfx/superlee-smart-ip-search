@@ -219,26 +219,29 @@ async function handleSearch(e) {
         if (result.success) {
             // Update user message status
             updateLastUserMessageStatus('sent');
-            
+
             // Add bot response
             addMessage({
                 type: 'bot',
-                content: result.summary || `Search complete! Found ${result.totalResults} results for "${query}".`,
+                content: result.summary || (result.searchType === 'ipid' ? `Detail IPID siap ditampilkan.` : `Search complete! Found ${result.totalResults} results for "${query}".`),
                 timestamp: new Date(),
                 status: 'sent'
             });
-            
+
             // Show search results
-            if (result.results && result.results.length > 0) {
+            if (result.searchType === 'ipid' && result.data) {
+                if (result.data.notice) showToast(result.data.notice, 'info');
+                addIPIDDetail(result.data, result.portalUrl);
+            } else if (result.results && result.results.length > 0) {
                 addSearchResults(result);
             }
-            
+
             // Add to history
             searchHistory.unshift(result);
             if (searchHistory.length > 50) {
                 searchHistory = searchHistory.slice(0, 50);
             }
-            
+
             showToast('Search completed successfully', 'success');
         } else {
             updateLastUserMessageStatus('error');
@@ -462,6 +465,43 @@ function hideHero() {
     if (hero && !hero.classList.contains('hidden')) {
         hero.classList.add('hidden');
     }
+}
+
+function addIPIDDetail(ipidResult, portalUrl) {
+    const data = ipidResult.metadata?.portalData || {};
+    const display = data.displayInfo || {};
+    const license = data.licenseInfo || {};
+    const rel = data.relationshipInfo || {};
+
+    const wrap = document.createElement('div');
+    wrap.className = 'ipid-detail';
+
+    wrap.innerHTML = `
+      <div class="ipid-card ${ipidResult.isMock ? 'mock' : ''}">
+        ${ipidResult.isMock ? '<div class="pixel-badge">DEMO</div>' : ''}
+        <div class="ipid-media">
+          ${display.image ? `<img src="${display.image}" alt="${display.title || 'IP Asset'}" onerror="this.style.display='none'">` : `<div class="placeholder">🖼️</div>`}
+        </div>
+        <div class="ipid-content">
+          <h3 class="ipid-title">${display.title || 'IP Asset'}</h3>
+          <p class="ipid-desc">${display.description || 'Story Protocol IP Asset'}</p>
+          <div class="ipid-tags">
+            ${display.mediaType ? `<span class="tag">${getMediaTypeIcon(display.mediaType)} ${display.mediaType}</span>` : ''}
+            ${license.commercialUse ? '<span class="tag success">Commercial</span>' : '<span class="tag">Open Use</span>'}
+            ${license.derivativesAllowed ? '<span class="tag success">Derivatives</span>' : ''}
+            ${rel.parentCount ? `<span class="tag">Parents: ${rel.parentCount}</span>` : ''}
+            ${rel.childrenCount ? `<span class="tag">Children: ${rel.childrenCount}</span>` : ''}
+          </div>
+          <div class="ipid-actions">
+            <a class="btn secondary sm" href="${display.mediaUrl || display.image || '#'}" target="_blank" rel="noopener">Preview</a>
+            <a class="btn primary sm" href="${portalUrl || '#'}" target="_blank" rel="noopener">Open in Explorer</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    elements.messagesArea.appendChild(wrap);
+    scrollToBottom();
 }
 
 function addSearchResults(searchResult) {
