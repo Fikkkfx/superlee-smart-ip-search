@@ -1,5 +1,6 @@
 // API Configuration
 const API_BASE_URL = window.location.origin;
+const DEFAULT_BG_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fc692190cfd69486380fecff59911b51b%2F22d0aaa2d7624e2ab2e7e6106aa2fcc6?format=webp&width=1600';
 
 // Global State
 let isLoading = false;
@@ -69,6 +70,9 @@ async function initializeApp() {
             checkAPIHealth()
         ]);
         
+        // Set default background from provided image
+        setAppBackground(DEFAULT_BG_URL);
+
         // Add welcome message
         addWelcomeMessage();
         
