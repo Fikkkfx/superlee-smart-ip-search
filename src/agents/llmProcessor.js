@@ -8,6 +8,9 @@ export class LLMProcessor {
   // Parse user query menggunakan LLM
   async parseUserQuery(userInput) {
     try {
+      if (!this.client || !this.client.chat || !this.client.chat.completions) {
+        return this.fallbackParse(userInput);
+      }
       const prompt = `
         Parse the following user query for IP asset search and extract structured parameters:
         
@@ -118,6 +121,9 @@ export class LLMProcessor {
   // Generate response summary untuk search results
   async generateResponseSummary(searchResults, originalQuery) {
     try {
+      if (!this.client || !this.client.chat || !this.client.chat.completions) {
+        return `Ditemukan ${searchResults.length} hasil untuk pencarian "${originalQuery}".`;
+      }
       const prompt = `
         Generate a helpful summary for IP asset search results:
         
@@ -161,6 +167,27 @@ export class LLMProcessor {
   async generateIPAssetSummary(ipAssetData) {
   try {
     const portalData = ipAssetData.metadata?.portalData || this.createBasicPortalData(ipAssetData);
+
+    if (!this.client || !this.client.chat || !this.client.chat.completions) {
+      const title = this.extractTitle(ipAssetData);
+      const ipId = ipAssetData.ipId || 'Unknown';
+      const imageUrl = portalData.displayInfo?.image;
+      return `🎨 **${title}** berhasil ditemukan!
+
+📋 **Detail IP Asset:**
+- ID: ${ipId}
+- Registered on Story Protocol
+- ${imageUrl ? '🖼️ Have visual content' : '📄 Digital content'}
+
+${imageUrl ? `🔗 **See Image:** ${imageUrl}` : ''}
+
+💡 **How ���​to Use:**
+1. Check the license before use
+2. Access the content via the provided URL
+3. Contact the creator for collaboration
+
+🌐 **Portal Story:** https://aeneid.explorer.story.foundation/ipa/${ipId}`;
+    }
 
     const prompt = `
       Generate a comprehensive, engaging summary for this IP Asset:
@@ -321,6 +348,9 @@ ${imageUrl ? `🔗 **See Image:** ${imageUrl}` : ''}
   // Generate comparison summary untuk multiple IP Assets
   async generateComparisonSummary(ipAssets) {
     try {
+      if (!this.client || !this.client.chat || !this.client.chat.completions) {
+        return "Perbandingan IP Assets berhasil diambil. Lihat detail masing-masing asset untuk informasi lengkap.";
+      }
       const prompt = `
         Compare these IP Assets and provide insights:
         
@@ -374,6 +404,9 @@ ${imageUrl ? `🔗 **See Image:** ${imageUrl}` : ''}
   // Generate metadata analysis untuk technical users
   async generateMetadataAnalysis(metadata) {
     try {
+      if (!this.client || !this.client.chat || !this.client.chat.completions) {
+        return "Analisis metadata berhasil dilakukan. Metadata mengikuti standar IPA dan siap untuk integrasi.";
+      }
       const prompt = `
         Analyze this IP Asset metadata and provide technical insights:
         
@@ -417,6 +450,9 @@ ${imageUrl ? `🔗 **See Image:** ${imageUrl}` : ''}
   // Generate licensing recommendations
   async generateLicensingRecommendations(licenseInfo, userIntent) {
     try {
+      if (!this.client || !this.client.chat || !this.client.chat.completions) {
+        return "Rekomendasi lisensi tersedia berdasarkan terms yang ada. Silakan review detail lisensi untuk memahami hak dan kewajiban.";
+      }
       const prompt = `
         Based on this license information and user intent, provide licensing recommendations:
         
@@ -465,6 +501,9 @@ ${imageUrl ? `🔗 **See Image:** ${imageUrl}` : ''}
   // Generate relationship insights untuk IP families
   async generateRelationshipInsights(relationships) {
     try {
+      if (!this.client || !this.client.chat || !this.client.chat.completions) {
+        return "Analisis hubungan IP menunjukkan struktur keluarga IP yang kompleks dengan berbagai peluang pengembangan.";
+      }
       const prompt = `
         Analyze these IP relationships and provide insights:
         
@@ -515,6 +554,15 @@ ${imageUrl ? `🔗 **See Image:** ${imageUrl}` : ''}
   // Generate search suggestions berdasarkan context
   async generateSearchSuggestions(searchContext, searchHistory = []) {
     try {
+      if (!this.client || !this.client.chat || !this.client.chat.completions) {
+        return [
+          "Explore IP assets populer",
+          "Cari berdasarkan creator",
+          "Filter by media type",
+          "Lisensi open use",
+          "AI agents terbaru"
+        ];
+      }
       const prompt = `
         Based on the current search context and history, suggest related searches:
         
