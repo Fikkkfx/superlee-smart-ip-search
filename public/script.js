@@ -524,6 +524,15 @@ function hideHero() {
     }
 }
 
+function setAppBackground(url) {
+    if (!url) return;
+    const app = document.getElementById('app');
+    if (!app) return;
+    document.documentElement.style.setProperty('--app-bg-image', `url("${url}")`);
+    app.classList.add('has-bg');
+    appBgSet = true;
+}
+
 function addIPIDDetail(ipidResult, portalUrl) {
     const data = ipidResult.metadata?.portalData || {};
     const display = data.displayInfo || {};
@@ -558,6 +567,10 @@ function addIPIDDetail(ipidResult, portalUrl) {
     `;
 
     elements.messagesArea.appendChild(wrap);
+
+    const bgUrl = display.image || display.mediaUrl || null;
+    if (bgUrl) setAppBackground(bgUrl);
+
     scrollToBottom();
 }
 
@@ -635,6 +648,9 @@ function createResultsGridElement(results) {
 }
 
 function createResultCardElement(result) {
+    if (!appBgSet && result.mediaUrl && result.mediaType?.startsWith('image')) {
+        setAppBackground(result.mediaUrl);
+    }
     const cardDiv = document.createElement('div');
     cardDiv.className = 'result-card';
     
