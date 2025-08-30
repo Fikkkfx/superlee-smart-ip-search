@@ -49,19 +49,19 @@ export class StoryService {
       console.error(`❌ Error fetching IP Asset ${ipId}:`, error.response?.data || error.message);
 
       if (error.response?.status === 404) {
-        return {
-          success: false,
-          error: `IP Asset dengan IPID ${ipId} tidak ditemukan di Story Protocol.`,
-          suggestion: "Pastikan IPID valid dan terdaftar di Story Protocol Explorer.",
-          validExample: "Contoh IPID valid: 0xB1D831271A68Db5c18c8F0B69327446f7C8D0A42 (Official Ippy)",
-          explorerUrl: "https://aeneid.explorer.story.foundation/",
-          ipId: ipId,
-          timestamp: new Date().toISOString()
-        };
+        // Not found in API: provide graceful mock so UX doesn't break
+        return this.createEnhancedMockIPAsset((ipId || '').trim(), {
+          notice: `IP Asset tidak ditemukan di Story Protocol untuk IPID ${ipId}. Menampilkan data contoh terstruktur.`,
+          suggestion: "Periksa IPID di Story Explorer atau gunakan IPID yang diketahui valid.",
+          explorerUrl: "https://aeneid.explorer.story.foundation/"
+        });
       }
 
-      // Error lain: fallback mock
-      return this.createEnhancedMockIPAsset((ipId || '').trim());
+      // Other errors: fallback to mock
+      return this.createEnhancedMockIPAsset((ipId || '').trim(), {
+        notice: "Terjadi masalah saat menghubungi API Story. Menampilkan data contoh.",
+        explorerUrl: "https://aeneid.explorer.story.foundation/"
+      });
     }
   }
 
@@ -314,7 +314,7 @@ export class StoryService {
   }
 
   // ... rest of methods remain the same
-  createEnhancedMockIPAsset(ipId) {
+  createEnhancedMockIPAsset(ipId, options = {}) {
     const mockData = {
       ipId: ipId,
       title: `Story Protocol IP Asset`,
@@ -336,13 +336,22 @@ export class StoryService {
       ]
     };
 
-    return {
+    const result = {
       success: true,
       ipId: ipId,
+      isMock: true,
       basicInfo: mockData,
       metadata: this.createBasicMetadata(ipId, mockData),
       timestamp: new Date().toISOString()
     };
+
+    if (options.notice || options.suggestion || options.explorerUrl) {
+      result.notice = options.notice || null;
+      result.suggestion = options.suggestion || null;
+      result.explorerUrl = options.explorerUrl || null;
+    }
+
+    return result;
   }
 
   createBasicMetadata(ipId, basicInfo) {
