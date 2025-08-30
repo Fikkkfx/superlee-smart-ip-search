@@ -26,6 +26,7 @@ const elements = {
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
+    initializeTheme();
 });
 
 async function initializeApp() {
