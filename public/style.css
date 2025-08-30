@@ -712,6 +712,8 @@ body {
     resize: none;
     transition: var(--transition);
     background: var(--surface);
+    color: var(--text-primary);
+    caret-color: var(--primary-color);
 }
 
 .search-input-container textarea:focus {
