@@ -107,6 +107,16 @@ function initializeEventListeners() {
     elements.searchForm.addEventListener('submit', handleSearch);
     elements.searchInput.addEventListener('input', handleInputChange);
     elements.searchInput.addEventListener('keydown', handleKeyDown);
+
+    // Hero CTA
+    const startBtn = document.getElementById('start-search-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', () => {
+            const input = elements.searchInput;
+            input.focus();
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    }
     
     // Buttons
     elements.voiceBtn.addEventListener('click', handleVoiceInput);
@@ -169,7 +179,9 @@ function autoResizeTextarea() {
 // Search Functionality
 async function handleSearch(e) {
     e.preventDefault();
-    
+
+    hideHero();
+
     const query = elements.searchInput.value.trim();
     if (!query || isLoading) return;
     
@@ -445,6 +457,13 @@ function hideTypingIndicator() {
 }
 
 // Search Results
+function hideHero() {
+    const hero = document.getElementById('pixel-hero');
+    if (hero && !hero.classList.contains('hidden')) {
+        hero.classList.add('hidden');
+    }
+}
+
 function addSearchResults(searchResult) {
     const resultsDiv = document.createElement('div');
     resultsDiv.className = 'search-results';
