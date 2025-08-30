@@ -6,7 +6,7 @@ export class StoryService {
   constructor() {
     this.client = storyClient;
     this.apiBaseUrl = "https://api.storyapis.com/api/v4";
-    this.apiKey = "MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U";
+    this.apiKey = process.env.STORY_API_KEY || null;
   }
 
   // Get IP Asset details by IPID - MENGGUNAKAN ENDPOINT YANG BENAR
