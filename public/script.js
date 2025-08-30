@@ -86,20 +86,18 @@ async function initializeApp() {
 }
 
 function showLoadingScreen() {
-    elements.loadingScreen.style.display = 'flex';
+    elements.loadingScreen.classList.remove('is-hidden');
     elements.app.classList.add('hidden');
 }
 
 function hideLoadingScreen() {
-    elements.loadingScreen.style.opacity = '0';
-    setTimeout(() => {
-        elements.loadingScreen.style.display = 'none';
-    }, 500);
+    elements.loadingScreen.classList.add('is-hidden');
 }
 
 function showApp() {
     elements.app.classList.remove('hidden');
-    elements.app.style.animation = 'fadeIn 0.5s ease-in-out';
+    elements.app.classList.add('fade-in');
+    setTimeout(() => elements.app.classList.remove('fade-in'), 600);
 }
 
 // Event Listeners
@@ -133,7 +131,7 @@ function initializeEventListeners() {
     // Quick suggestions
     document.querySelectorAll('.suggestion-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const query = e.target.dataset.query;
+            const query = e.currentTarget.dataset.query;
             elements.searchInput.value = query;
             handleSearch(e);
         });
@@ -142,8 +140,8 @@ function initializeEventListeners() {
     // Modal close buttons
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const modalId = e.target.dataset.modal;
-            hideModal(modalId);
+            const modalId = e.currentTarget.dataset.modal;
+            if (modalId) hideModal(modalId);
         });
     });
     
@@ -538,7 +536,7 @@ function addIPIDDetail(ipidResult, portalUrl) {
       <div class="ipid-card ${ipidResult.isMock ? 'mock' : ''}">
         ${ipidResult.isMock ? '<div class="pixel-badge">DEMO</div>' : ''}
         <div class="ipid-media">
-          ${display.image ? `<img src="${display.image}" alt="${display.title || 'IP Asset'}" onerror="this.style.display='none'">` : `<div class="placeholder">🖼️</div>`}
+          ${display.image ? `<img src="${display.image}" alt="${display.title || 'IP Asset'}" onerror="this.classList.add('hidden')">` : `<div class="placeholder">🖼️</div>`}
         </div>
         <div class="ipid-content">
           <h3 class="ipid-title">${display.title || 'IP Asset'}</h3>
@@ -627,18 +625,17 @@ function createResultsGridElement(results) {
     const gridDiv = document.createElement('div');
     gridDiv.className = 'results-grid';
     
-    results.forEach((result, index) => {
-        const cardDiv = createResultCardElement(result, index);
+    results.forEach((result) => {
+        const cardDiv = createResultCardElement(result);
         gridDiv.appendChild(cardDiv);
     });
     
     return gridDiv;
 }
 
-function createResultCardElement(result, index) {
+function createResultCardElement(result) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'result-card';
-    cardDiv.style.animationDelay = `${index * 0.1}s`;
     
     // Media preview
     const mediaDiv = document.createElement('div');
@@ -649,12 +646,18 @@ function createResultCardElement(result, index) {
         img.src = result.mediaUrl;
         img.alt = result.title;
         img.onerror = () => {
-            img.style.display = 'none';
-            mediaDiv.innerHTML = `<div class="result-media-icon">${getMediaTypeIcon(result.mediaType)}</div>`;
+            img.classList.add('hidden');
+            const fallback = document.createElement('div');
+            fallback.className = 'result-media-icon';
+            fallback.textContent = getMediaTypeIcon(result.mediaType);
+            mediaDiv.appendChild(fallback);
         };
         mediaDiv.appendChild(img);
     } else {
-        mediaDiv.innerHTML = `<div class="result-media-icon">${getMediaTypeIcon(result.mediaType)}</div>`;
+        const fallback = document.createElement('div');
+        fallback.className = 'result-media-icon';
+        fallback.textContent = getMediaTypeIcon(result.mediaType);
+        mediaDiv.appendChild(fallback);
     }
     
     // Media overlay
