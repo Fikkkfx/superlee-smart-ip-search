@@ -5,6 +5,7 @@ const API_BASE_URL = window.location.origin;
 let isLoading = false;
 let searchHistory = [];
 let currentUser = { id: 'user-1', name: 'You' };
+let activeFilters = { mediaType: null, license: null, creator: null };
 
 // DOM Elements
 const elements = {
@@ -125,6 +126,9 @@ function initializeEventListeners() {
     elements.historyBtn.addEventListener('click', () => showModal('history-modal'));
     elements.helpBtn.addEventListener('click', () => showModal('help-modal'));
     elements.settingsBtn.addEventListener('click', () => showModal('settings-modal'));
+
+    // Drawer wiring
+    wireFilterDrawer();
     
     // Quick suggestions
     document.querySelectorAll('.suggestion-btn').forEach(btn => {
@@ -208,7 +212,7 @@ async function handleSearch(e) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ query })
+            body: JSON.stringify({ query, filters: sanitizeFilters(activeFilters) })
         });
         
         const result = await response.json();
@@ -314,10 +318,64 @@ function handleImageInput() {
 
 // Filter Toggle (placeholder)
 function handleFilterToggle() {
-    showToast('Advanced filters coming soon!', 'info');
+    const drawer = document.getElementById('filter-drawer');
+    if (drawer) drawer.classList.add('active');
+}
+
+function wireFilterDrawer() {
+    const drawer = document.getElementById('filter-drawer');
+    if (!drawer) return;
+    const closeBtn = document.getElementById('drawer-close');
+    const backdrop = document.getElementById('drawer-backdrop');
+    const applyBtn = document.getElementById('drawer-apply');
+    const clearBtn = document.getElementById('drawer-clear');
+    const creatorInput = document.getElementById('creator-input');
+
+    function toggleChip(groupId, key) {
+        const group = document.getElementById(groupId);
+        if (!group) return;
+        group.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const val = chip.dataset.value;
+                if (chip.classList.contains('active')) {
+                    chip.classList.remove('active');
+                    activeFilters[key] = null;
+                } else {
+                    group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    activeFilters[key] = val;
+                }
+            });
+        });
+    }
+
+    toggleChip('chip-media', 'mediaType');
+    toggleChip('chip-license', 'license');
+
+    closeBtn?.addEventListener('click', () => drawer.classList.remove('active'));
+    backdrop?.addEventListener('click', () => drawer.classList.remove('active'));
+
+    applyBtn?.addEventListener('click', () => {
+        activeFilters.creator = creatorInput?.value?.trim() || null;
+        drawer.classList.remove('active');
+        showFiltersContext();
+    });
+
+    clearBtn?.addEventListener('click', () => {
+        activeFilters = { mediaType: null, license: null, creator: null };
+        document.querySelectorAll('#chip-media .chip, #chip-license .chip').forEach(c => c.classList.remove('active'));
+        if (creatorInput) creatorInput.value = '';
+        showFiltersContext();
+    });
 }
 
 // Message Management
+function sanitizeFilters(f) {
+    const out = { ...f };
+    Object.keys(out).forEach(k => { if (!out[k]) delete out[k]; });
+    return out;
+}
+
 function addMessage(message) {
     const messageElement = createMessageElement(message);
     elements.messagesArea.appendChild(messageElement);
@@ -502,6 +560,23 @@ function addIPIDDetail(ipidResult, portalUrl) {
 
     elements.messagesArea.appendChild(wrap);
     scrollToBottom();
+}
+
+function showFiltersContext() {
+    const existing = document.getElementById('context-bar');
+    if (existing) existing.remove();
+    const has = activeFilters.mediaType || activeFilters.license || activeFilters.creator;
+    if (!has) return;
+    const bar = document.createElement('div');
+    bar.id = 'context-bar';
+    bar.className = 'context-bar';
+    bar.innerHTML = `
+      <span class="context-label">Filters:</span>
+      ${activeFilters.mediaType ? `<span class="chip active">${activeFilters.mediaType}</span>` : ''}
+      ${activeFilters.license ? `<span class="chip active">${activeFilters.license}</span>` : ''}
+      ${activeFilters.creator ? `<span class="chip active">@${activeFilters.creator}</span>` : ''}
+    `;
+    elements.messagesArea.prepend(bar);
 }
 
 function addSearchResults(searchResult) {
