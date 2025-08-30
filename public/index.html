@@ -236,6 +236,45 @@
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- Filter Drawer -->
+    <div id="filter-drawer" class="drawer">
+      <div class="drawer-backdrop" id="drawer-backdrop"></div>
+      <aside class="drawer-panel">
+        <div class="drawer-header">
+          <h3>Filters</h3>
+          <button class="modal-close" id="drawer-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="drawer-body">
+          <div class="filter-group">
+            <h4>Media Type</h4>
+            <div class="chip-group" id="chip-media">
+              <button class="chip" data-value="image">Image</button>
+              <button class="chip" data-value="video">Video</button>
+              <button class="chip" data-value="audio">Audio</button>
+              <button class="chip" data-value="text">Text</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <h4>License</h4>
+            <div class="chip-group" id="chip-license">
+              <button class="chip" data-value="open use">Open Use</button>
+              <button class="chip" data-value="commercial">Commercial</button>
+              <button class="chip" data-value="non-commercial">Non‑Commercial</button>
+              <button class="chip" data-value="derivatives">Derivatives</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <h4>Creator</h4>
+            <input id="creator-input" type="text" placeholder="Nama creator" class="drawer-input"/>
+          </div>
+          <div class="filter-actions">
+            <button class="btn secondary" id="drawer-clear">Clear</button>
+            <button class="btn primary" id="drawer-apply">Apply</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
