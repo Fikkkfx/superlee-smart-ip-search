@@ -238,6 +238,59 @@ export class StoryService {
     };
   }
 
+  // Basic search implementation with filters (mocked fallback)
+  async searchWithFilters(params = {}) {
+    const { query = "", mediaType = null, license = null, creator = null, tags = [] } = params;
+
+    if (this.apiKey) {
+      try {
+        const response = await axios.get(`${this.apiBaseUrl}/assets`, {
+          headers: {
+            'X-API-Key': this.apiKey,
+            'Accept': 'application/json'
+          },
+          params: {
+            q: query || undefined,
+            mediaType: mediaType || undefined,
+            creator: creator || undefined,
+            tags: tags && tags.length ? tags.join(',') : undefined,
+            limit: 12
+          },
+          timeout: 10000
+        });
+
+        const items = response.data?.data || [];
+        return items.map((item) => ({
+          ipId: item.ipId || item.id || "",
+          title: item.title || `IP Asset ${String(item.ipId || '').slice(0,8)}...`,
+          description: item.description || 'Story Protocol IP Asset',
+          mediaType: item.mediaType || 'image',
+          mediaUrl: item.image || item.mediaUrl || '',
+          creators: item.creators || [],
+          licenseTerms: item.licenseTerms || null,
+          tags: item.tags || [],
+          createdAt: item.createdAt || item.registrationDate || new Date().toISOString(),
+        }));
+      } catch (e) {
+        console.warn('Search API failed, using fallback:', e.message);
+      }
+    }
+
+    const makeItem = (i) => ({
+      ipId: `0x${(Math.random().toString(16).slice(2).padEnd(40,'0')).slice(0,40)}`,
+      title: `${query || 'IP Asset'} ${i + 1}`.trim(),
+      description: `Hasil pencarian untuk "${query}"${mediaType ? ' • ' + mediaType : ''}${license ? ' • ' + license : ''}`,
+      mediaType: mediaType || 'image',
+      mediaUrl: 'https://via.placeholder.com/600x400/6366f1/ffffff?text=Story+IP',
+      creators: creator ? [{ name: creator, address: "0x" + "0".repeat(40), contributionPercent: 100 }] : [],
+      licenseTerms: license ? { commercialUse: license.includes('commercial'), derivativesAllowed: license.includes('derivatives') } : null,
+      tags: Array.isArray(tags) ? tags.slice(0,3) : [],
+      createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+    });
+
+    return Array.from({ length: 8 }, (_, i) => makeItem(i));
+  }
+
   // Test dengan IPID yang diketahui valid dari dokumentasi
   async testWithKnownIPID() {
     const knownIPIDs = [
