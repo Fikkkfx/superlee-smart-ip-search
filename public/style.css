@@ -21,6 +21,7 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --border-radius: 12px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --app-bg-image: url('https://cdn.builder.io/api/v1/image/assets%2Fc692190cfd69486380fecff59911b51b%2F22d0aaa2d7624e2ab2e7e6106aa2fcc6?format=webp&width=1600');
 }
 
 body.theme-light {
