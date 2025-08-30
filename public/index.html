@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story AI Search - Smart IP Asset Discovery</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <i class="fas fa-sparkles"></i>
+            </div>
+            <h2>Story AI Search</h2>
+            <div class="loading-spinner"></div>
+            <p>Initializing Smart IP Discovery...</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="app hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="logo">
+                        <i class="fas fa-sparkles"></i>
+                    </div>
+                    <div class="header-info">
+                        <h1 class="header-title">Story AI Search</h1>
+                        <p class="header-subtitle">Smart IP Asset Discovery</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-btn" id="history-btn">
+                        <i class="fas fa-history"></i>
+                        <span>History</span>
+                    </button>
+                    <button class="header-btn" id="help-btn">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help</span>
+                    </button>
+                    <button class="header-btn" id="settings-btn">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Chat Container -->
+        <main class="chat-container">
+            <div class="messages-area" id="messages-area">
+                <!-- Messages will be inserted here -->
+            </div>
+        </main>
+
+        <!-- Search Input -->
+        <footer class="search-footer">
+            <div class="search-container">
+                <form id="search-form" class="search-form">
+                    <div class="search-input-container">
+                        <button type="button" class="search-btn secondary" id="filter-btn">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                        
+                        <div class="input-wrapper">
+                            <textarea 
+                                id="search-input" 
+                                placeholder="Search for IP Asset... (example: 'I'm looking for an image of Dimjink singing, open use license')"
+                                rows="1"
+                                maxlength="500"
+                            ></textarea>
+                            
+                            <div class="input-actions">
+                                <button type="button" class="input-btn" id="voice-btn">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                                <button type="button" class="input-btn" id="image-btn">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="search-btn primary" id="send-btn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Kirim</span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Suggestions -->
+                    <div class="quick-suggestions">
+                        <button type="button" class="suggestion-btn" data-query="gambar lucu lisensi open">
+                            gambar lucu lisensi open
+                        </button>
+                        <button type="button" class="suggestion-btn" data-query="video musik komersial">
+                            video musik komersial
+                        </button>
+                        <button type="button" class="suggestion-btn" data-query="karakter anime derivatives">
+                            karakter anime derivatives
+                        </button>
+                        <button type="button" class="suggestion-btn" data-query="meme viral bebas pakai">
+                            meme viral bebas pakai
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <!-- History Modal -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Search History</h3>
+                <button class="modal-close" data-modal="history-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="history-content">
+                <!-- History items will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>How to Use Story AI Search</h3>
+                <button class="modal-close" data-modal="help-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="help-content">
+                    <div class="help-section">
+                        <h4><i class="fas fa-search"></i> Natural Language Search</h4>
+                        <p>Gunakan bahasa sehari-hari untuk mencari IP Asset. Sebutkan jenis media dan lisensi yang diinginkan.</p>
+                        <div class="help-examples">
+                            <div class="help-example">
+                                <strong>Contoh:</strong> "saya mencari gambar dimjink lagi nyanyi, lisensi open use"
+                            </div>
+                            <div class="help-example">
+                                <strong>Contoh:</strong> "video musik untuk komersial"
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h4><i class="fas fa-filter"></i> Available Filters</h4>
+                        <ul>
+                            <li><strong>Media Type:</strong> image, video, audio, text</li>
+                            <li><strong>License:</strong> open use, commercial, non-commercial</li>
+                            <li><strong>Creator:</strong> nama pembuat</li>
+                            <li><strong>Tags:</strong> kata kunci spesifik</li>
+                        </ul>
+                    </div>
+
+                    <div class="help-section">
+                        <h4><i class="fas fa-microphone"></i> Voice Input</h4>
+                        <p>Klik tombol mikrofon untuk menggunakan voice input. Pastikan browser mendukung speech recognition.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="modal-close" data-modal="settings-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-content">
+                    <div class="setting-item">
+                        <label for="theme-select">Theme</label>
+                        <select id="theme-select">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                            <option value="auto">Auto</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="language-select">Language</label>
+                        <select id="language-select">
+                            <option value="id">Bahasa Indonesia</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="voice-enabled" checked>
+                            Enable Voice Input
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="auto-scroll" checked>
+                            Auto Scroll to Results
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
