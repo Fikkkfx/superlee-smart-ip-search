@@ -86,7 +86,7 @@ export class StoryService {
           
           const response = await axios.get(endpoint, {
             headers: {
-              'X-API-Key': this.apiKey,
+              ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
               'Accept': 'application/json'
             },
             timeout: 10000
