@@ -12,45 +12,43 @@ export class StoryService {
   // Get IP Asset details by IPID - MENGGUNAKAN ENDPOINT YANG BENAR
   async getIPAssetByIPID(ipId) {
     try {
-      console.log(`🔍 Searching for IP Asset with IPID: ${ipId}`);
-      
-      // Berdasarkan dokumentasi, gunakan GET /assets dengan query parameter
+      const ipIdClean = (ipId || '').trim();
+      console.log(`🔍 Searching for IP Asset with IPID: ${ipIdClean}`);
+
       const response = await axios.get(`${this.apiBaseUrl}/assets`, {
         headers: {
           ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
           'Accept': 'application/json'
         },
         params: {
-          ipIds: ipId  // Query parameter, bukan body
+          ipIds: ipIdClean
         },
         timeout: 15000
       });
 
       console.log("📡 API Response:", response.data);
 
-      if (response.data && response.data.data && response.data.data.length > 0) {
-        const ipAsset = response.data.data[0];
+      const list = response.data?.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        const ipAsset = list[0];
         console.log("✅ Found real IP Asset:", ipAsset);
-        
-        // Get comprehensive metadata dari IP Asset yang real
-        const fullMetadata = await this.getComprehensiveMetadata(ipId, ipAsset);
-        
+        const fullMetadata = await this.getComprehensiveMetadata(ipIdClean, ipAsset);
         return {
           success: true,
-          ipId: ipId,
+          ipId: ipIdClean,
           basicInfo: ipAsset,
           metadata: fullMetadata,
           timestamp: new Date().toISOString()
         };
       }
 
-      throw new Error(`IP Asset with IPID ${ipId} not found in Story Protocol`);
+      // Tidak ada data dikembalikan: gunakan mock agar UX tetap jalan
+      return this.createEnhancedMockIPAsset(ipIdClean);
 
     } catch (error) {
       console.error(`❌ Error fetching IP Asset ${ipId}:`, error.response?.data || error.message);
-      
-      // Jika tidak ditemukan, beri informasi yang jelas
-      if (error.response?.status === 404 || error.message.includes('not found')) {
+
+      if (error.response?.status === 404) {
         return {
           success: false,
           error: `IP Asset dengan IPID ${ipId} tidak ditemukan di Story Protocol.`,
@@ -61,9 +59,9 @@ export class StoryService {
           timestamp: new Date().toISOString()
         };
       }
-      
-      // Untuk error lain, tetap gunakan enhanced mock
-      return this.createEnhancedMockIPAsset(ipId);
+
+      // Error lain: fallback mock
+      return this.createEnhancedMockIPAsset((ipId || '').trim());
     }
   }
 
