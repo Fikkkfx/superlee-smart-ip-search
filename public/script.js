@@ -1,10 +1,13 @@
 // API Configuration
 const API_BASE_URL = window.location.origin;
+const DEFAULT_BG_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fc692190cfd69486380fecff59911b51b%2F22d0aaa2d7624e2ab2e7e6106aa2fcc6?format=webp&width=1600';
 
 // Global State
 let isLoading = false;
 let searchHistory = [];
 let currentUser = { id: 'user-1', name: 'You' };
+let activeFilters = { mediaType: null, license: null, creator: null };
+let appBgSet = false;
 
 // DOM Elements
 const elements = {
@@ -26,7 +29,34 @@ const elements = {
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
+    initializeTheme();
 });
+
+function initializeTheme() {
+    const select = document.getElementById('theme-select');
+    if (!select) return;
+
+    const saved = localStorage.getItem('theme-preference') || 'auto';
+    select.value = saved;
+    applyTheme(saved);
+
+    select.addEventListener('change', () => {
+        const value = select.value;
+        localStorage.setItem('theme-preference', value);
+        applyTheme(value);
+    });
+}
+
+function applyTheme(mode) {
+    document.body.classList.remove('theme-dark', 'theme-light');
+    if (mode === 'dark') {
+        document.body.classList.add('theme-dark');
+    } else if (mode === 'light') {
+        document.body.classList.add('theme-light');
+    } else {
+        // auto: rely on prefers-color-scheme
+    }
+}
 
 async function initializeApp() {
     try {
@@ -40,6 +70,9 @@ async function initializeApp() {
             checkAPIHealth()
         ]);
         
+        // Set default background from provided image
+        setAppBackground(DEFAULT_BG_URL);
+
         // Add welcome message
         addWelcomeMessage();
         
@@ -58,20 +91,18 @@ async function initializeApp() {
 }
 
 function showLoadingScreen() {
-    elements.loadingScreen.style.display = 'flex';
+    elements.loadingScreen.classList.remove('is-hidden');
     elements.app.classList.add('hidden');
 }
 
 function hideLoadingScreen() {
-    elements.loadingScreen.style.opacity = '0';
-    setTimeout(() => {
-        elements.loadingScreen.style.display = 'none';
-    }, 500);
+    elements.loadingScreen.classList.add('is-hidden');
 }
 
 function showApp() {
     elements.app.classList.remove('hidden');
-    elements.app.style.animation = 'fadeIn 0.5s ease-in-out';
+    elements.app.classList.add('fade-in');
+    setTimeout(() => elements.app.classList.remove('fade-in'), 600);
 }
 
 // Event Listeners
@@ -80,6 +111,16 @@ function initializeEventListeners() {
     elements.searchForm.addEventListener('submit', handleSearch);
     elements.searchInput.addEventListener('input', handleInputChange);
     elements.searchInput.addEventListener('keydown', handleKeyDown);
+
+    // Hero CTA
+    const startBtn = document.getElementById('start-search-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', () => {
+            const input = elements.searchInput;
+            input.focus();
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    }
     
     // Buttons
     elements.voiceBtn.addEventListener('click', handleVoiceInput);
@@ -88,11 +129,14 @@ function initializeEventListeners() {
     elements.historyBtn.addEventListener('click', () => showModal('history-modal'));
     elements.helpBtn.addEventListener('click', () => showModal('help-modal'));
     elements.settingsBtn.addEventListener('click', () => showModal('settings-modal'));
+
+    // Drawer wiring
+    wireFilterDrawer();
     
     // Quick suggestions
     document.querySelectorAll('.suggestion-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const query = e.target.dataset.query;
+            const query = e.currentTarget.dataset.query;
             elements.searchInput.value = query;
             handleSearch(e);
         });
@@ -101,8 +145,8 @@ function initializeEventListeners() {
     // Modal close buttons
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const modalId = e.target.dataset.modal;
-            hideModal(modalId);
+            const modalId = e.currentTarget.dataset.modal;
+            if (modalId) hideModal(modalId);
         });
     });
     
@@ -141,8 +185,11 @@ function autoResizeTextarea() {
 
 // Search Functionality
 async function handleSearch(e) {
+    ensureAppBackground();
     e.preventDefault();
-    
+
+    hideHero();
+
     const query = elements.searchInput.value.trim();
     if (!query || isLoading) return;
     
@@ -169,7 +216,7 @@ async function handleSearch(e) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ query })
+            body: JSON.stringify({ query, filters: sanitizeFilters(activeFilters) })
         });
         
         const result = await response.json();
@@ -180,26 +227,29 @@ async function handleSearch(e) {
         if (result.success) {
             // Update user message status
             updateLastUserMessageStatus('sent');
-            
+
             // Add bot response
             addMessage({
                 type: 'bot',
-                content: result.summary || `Search complete! Found ${result.totalResults} results for "${query}".`,
+                content: result.summary || (result.searchType === 'ipid' ? `IPID details are ready.` : `Search complete! Found ${result.totalResults} results for "${query}".`),
                 timestamp: new Date(),
                 status: 'sent'
             });
-            
+
             // Show search results
-            if (result.results && result.results.length > 0) {
+            if (result.searchType === 'ipid' && result.data) {
+                if (result.data.notice) showToast(result.data.notice, 'info');
+                addIPIDDetail(result.data, result.portalUrl);
+            } else if (result.results && result.results.length > 0) {
                 addSearchResults(result);
             }
-            
+
             // Add to history
             searchHistory.unshift(result);
             if (searchHistory.length > 50) {
                 searchHistory = searchHistory.slice(0, 50);
             }
-            
+
             showToast('Search completed successfully', 'success');
         } else {
             updateLastUserMessageStatus('error');
@@ -225,6 +275,7 @@ async function handleSearch(e) {
         showToast('Network error occurred', 'error');
     } finally {
         setLoading(false);
+        ensureAppBackground();
     }
 }
 
@@ -238,7 +289,7 @@ function handleVoiceInput() {
     const recognition = new webkitSpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'id-ID';
+    recognition.lang = 'en-US';
     
     recognition.onstart = () => {
         elements.voiceBtn.classList.add('recording');
@@ -272,10 +323,64 @@ function handleImageInput() {
 
 // Filter Toggle (placeholder)
 function handleFilterToggle() {
-    showToast('Advanced filters coming soon!', 'info');
+    const drawer = document.getElementById('filter-drawer');
+    if (drawer) drawer.classList.add('active');
+}
+
+function wireFilterDrawer() {
+    const drawer = document.getElementById('filter-drawer');
+    if (!drawer) return;
+    const closeBtn = document.getElementById('drawer-close');
+    const backdrop = document.getElementById('drawer-backdrop');
+    const applyBtn = document.getElementById('drawer-apply');
+    const clearBtn = document.getElementById('drawer-clear');
+    const creatorInput = document.getElementById('creator-input');
+
+    function toggleChip(groupId, key) {
+        const group = document.getElementById(groupId);
+        if (!group) return;
+        group.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const val = chip.dataset.value;
+                if (chip.classList.contains('active')) {
+                    chip.classList.remove('active');
+                    activeFilters[key] = null;
+                } else {
+                    group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    activeFilters[key] = val;
+                }
+            });
+        });
+    }
+
+    toggleChip('chip-media', 'mediaType');
+    toggleChip('chip-license', 'license');
+
+    closeBtn?.addEventListener('click', () => drawer.classList.remove('active'));
+    backdrop?.addEventListener('click', () => drawer.classList.remove('active'));
+
+    applyBtn?.addEventListener('click', () => {
+        activeFilters.creator = creatorInput?.value?.trim() || null;
+        drawer.classList.remove('active');
+        showFiltersContext();
+    });
+
+    clearBtn?.addEventListener('click', () => {
+        activeFilters = { mediaType: null, license: null, creator: null };
+        document.querySelectorAll('#chip-media .chip, #chip-license .chip').forEach(c => c.classList.remove('active'));
+        if (creatorInput) creatorInput.value = '';
+        showFiltersContext();
+    });
 }
 
 // Message Management
+function sanitizeFilters(f) {
+    const out = { ...f };
+    Object.keys(out).forEach(k => { if (!out[k]) delete out[k]; });
+    return out;
+}
+
 function addMessage(message) {
     const messageElement = createMessageElement(message);
     elements.messagesArea.appendChild(messageElement);
@@ -403,7 +508,7 @@ function showTypingIndicator() {
             <div class="typing-dot"></div>
             <div class="typing-dot"></div>
         </div>
-        <span>Story AI sedang mencari...</span>
+        <span>Story AI is searching...</span>
     `;
     
     elements.messagesArea.appendChild(typingDiv);
@@ -418,6 +523,91 @@ function hideTypingIndicator() {
 }
 
 // Search Results
+function hideHero() {
+    const hero = document.getElementById('pixel-hero');
+    if (hero && !hero.classList.contains('hidden')) {
+        hero.classList.add('hidden');
+    }
+}
+
+function setAppBackground(url) {
+    if (!url) return;
+    const app = document.getElementById('app');
+    if (!app) return;
+    document.documentElement.style.setProperty('--app-bg-image', `url("${url}")`);
+    app.classList.add('has-bg');
+    appBgSet = true;
+}
+
+function ensureAppBackground() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    if (!app.classList.contains('has-bg')) app.classList.add('has-bg');
+    const val = getComputedStyle(document.documentElement).getPropertyValue('--app-bg-image');
+    if (!val || !val.trim()) {
+        document.documentElement.style.setProperty('--app-bg-image', `url("${DEFAULT_BG_URL}")`);
+    }
+}
+
+function addIPIDDetail(ipidResult, portalUrl) {
+    const data = ipidResult.metadata?.portalData || {};
+    const display = data.displayInfo || {};
+    const license = data.licenseInfo || {};
+    const rel = data.relationshipInfo || {};
+
+    const wrap = document.createElement('div');
+    wrap.className = 'ipid-detail';
+
+    wrap.innerHTML = `
+      <div class="ipid-card ${ipidResult.isMock ? 'mock' : ''}">
+        ${ipidResult.isMock ? '<div class="pixel-badge">DEMO</div>' : ''}
+        <div class="ipid-media">
+          ${display.image ? `<img src="${display.image}" alt="${display.title || 'IP Asset'}" onerror="this.classList.add('hidden')">` : `<div class="placeholder">🖼️</div>`}
+        </div>
+        <div class="ipid-content">
+          <h3 class="ipid-title">${display.title || 'IP Asset'}</h3>
+          <p class="ipid-desc">${display.description || 'Story Protocol IP Asset'}</p>
+          <div class="ipid-tags">
+            ${display.mediaType ? `<span class="tag">${getMediaTypeIcon(display.mediaType)} ${display.mediaType}</span>` : ''}
+            ${license.commercialUse ? '<span class="tag success">Commercial</span>' : '<span class="tag">Open Use</span>'}
+            ${license.derivativesAllowed ? '<span class="tag success">Derivatives</span>' : ''}
+            ${rel.parentCount ? `<span class="tag">Parents: ${rel.parentCount}</span>` : ''}
+            ${rel.childrenCount ? `<span class="tag">Children: ${rel.childrenCount}</span>` : ''}
+          </div>
+          <div class="ipid-actions">
+            <a class="btn secondary sm" href="${display.mediaUrl || display.image || '#'}" target="_blank" rel="noopener">Preview</a>
+            <a class="btn primary sm" href="${portalUrl || '#'}" target="_blank" rel="noopener">Open in Explorer</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    elements.messagesArea.appendChild(wrap);
+
+    const bgUrl = display.image || display.mediaUrl || null;
+    if (bgUrl) setAppBackground(bgUrl);
+    ensureAppBackground();
+
+    scrollToBottom();
+}
+
+function showFiltersContext() {
+    const existing = document.getElementById('context-bar');
+    if (existing) existing.remove();
+    const has = activeFilters.mediaType || activeFilters.license || activeFilters.creator;
+    if (!has) return;
+    const bar = document.createElement('div');
+    bar.id = 'context-bar';
+    bar.className = 'context-bar';
+    bar.innerHTML = `
+      <span class="context-label">Filters:</span>
+      ${activeFilters.mediaType ? `<span class="chip active">${activeFilters.mediaType}</span>` : ''}
+      ${activeFilters.license ? `<span class="chip active">${activeFilters.license}</span>` : ''}
+      ${activeFilters.creator ? `<span class="chip active">@${activeFilters.creator}</span>` : ''}
+    `;
+    elements.messagesArea.prepend(bar);
+}
+
 function addSearchResults(searchResult) {
     const resultsDiv = document.createElement('div');
     resultsDiv.className = 'search-results';
@@ -447,13 +637,13 @@ function createSummaryElement(searchResult) {
             <div class="summary-icon">
                 <i class="fas fa-search"></i>
             </div>
-            <h3 class="summary-title">Ringkasan Pencarian</h3>
+            <h3 class="summary-title">Search Summary</h3>
         </div>
         <div class="summary-text">${searchResult.summary}</div>
         <div class="summary-meta">
             <span>Query: "${searchResult.query}"</span>
             <span>•</span>
-            <span>${searchResult.totalResults} hasil ditemukan</span>
+            <span>${searchResult.totalResults} results found</span>
             <span>•</span>
             <span>${formatTime(new Date(searchResult.timestamp))}</span>
         </div>
@@ -466,18 +656,20 @@ function createResultsGridElement(results) {
     const gridDiv = document.createElement('div');
     gridDiv.className = 'results-grid';
     
-    results.forEach((result, index) => {
-        const cardDiv = createResultCardElement(result, index);
+    results.forEach((result) => {
+        const cardDiv = createResultCardElement(result);
         gridDiv.appendChild(cardDiv);
     });
     
     return gridDiv;
 }
 
-function createResultCardElement(result, index) {
+function createResultCardElement(result) {
+    if (!appBgSet && result.mediaUrl && result.mediaType?.startsWith('image')) {
+        setAppBackground(result.mediaUrl);
+    }
     const cardDiv = document.createElement('div');
     cardDiv.className = 'result-card';
-    cardDiv.style.animationDelay = `${index * 0.1}s`;
     
     // Media preview
     const mediaDiv = document.createElement('div');
@@ -488,12 +680,18 @@ function createResultCardElement(result, index) {
         img.src = result.mediaUrl;
         img.alt = result.title;
         img.onerror = () => {
-            img.style.display = 'none';
-            mediaDiv.innerHTML = `<div class="result-media-icon">${getMediaTypeIcon(result.mediaType)}</div>`;
+            img.classList.add('hidden');
+            const fallback = document.createElement('div');
+            fallback.className = 'result-media-icon';
+            fallback.textContent = getMediaTypeIcon(result.mediaType);
+            mediaDiv.appendChild(fallback);
         };
         mediaDiv.appendChild(img);
     } else {
-        mediaDiv.innerHTML = `<div class="result-media-icon">${getMediaTypeIcon(result.mediaType)}</div>`;
+        const fallback = document.createElement('div');
+        fallback.className = 'result-media-icon';
+        fallback.textContent = getMediaTypeIcon(result.mediaType);
+        mediaDiv.appendChild(fallback);
     }
     
     // Media overlay
@@ -584,14 +782,14 @@ function getLicenseText(licenseTerms) {
 }
 
 function formatTime(date) {
-    return new Date(date).toLocaleTimeString('id-ID', {
+    return new Date(date).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit'
     });
 }
 
 function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -605,10 +803,10 @@ function setLoading(loading) {
     
     if (loading) {
         elements.sendBtn.classList.add('loading');
-        elements.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
+        elements.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
     } else {
         elements.sendBtn.classList.remove('loading');
-        elements.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Kirim</span>';
+        elements.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Send</span>';
     }
 }
 
@@ -644,7 +842,7 @@ function loadHistoryModal() {
     if (!historyContent) return;
     
     if (searchHistory.length === 0) {
-        historyContent.innerHTML = '<div class="history-empty">Belum ada riwayat pencarian.</div>';
+        historyContent.innerHTML = '<div class="history-empty">No search history yet.</div>';
         return;
     }
     
@@ -652,7 +850,7 @@ function loadHistoryModal() {
         <div class="history-item" onclick="repeatSearch('${item.query}')">
             <div class="history-query">${item.query}</div>
             <div class="history-meta">
-                <span>${item.totalResults} hasil</span>
+                <span>${item.totalResults} results</span>
                 <span>${formatTime(new Date(item.timestamp))}</span>
             </div>
         </div>

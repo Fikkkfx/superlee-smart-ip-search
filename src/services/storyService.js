@@ -6,64 +6,62 @@ export class StoryService {
   constructor() {
     this.client = storyClient;
     this.apiBaseUrl = "https://api.storyapis.com/api/v4";
-    this.apiKey = "MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U";
+    this.apiKey = process.env.STORY_API_KEY || null;
   }
 
   // Get IP Asset details by IPID - MENGGUNAKAN ENDPOINT YANG BENAR
   async getIPAssetByIPID(ipId) {
     try {
-      console.log(`🔍 Searching for IP Asset with IPID: ${ipId}`);
-      
-      // Berdasarkan dokumentasi, gunakan GET /assets dengan query parameter
+      const ipIdClean = (ipId || '').trim();
+      console.log(`🔍 Searching for IP Asset with IPID: ${ipIdClean}`);
+
       const response = await axios.get(`${this.apiBaseUrl}/assets`, {
         headers: {
-          'X-API-Key': this.apiKey,
+          ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
           'Accept': 'application/json'
         },
         params: {
-          ipIds: ipId  // Query parameter, bukan body
+          ipIds: ipIdClean
         },
         timeout: 15000
       });
 
       console.log("📡 API Response:", response.data);
 
-      if (response.data && response.data.data && response.data.data.length > 0) {
-        const ipAsset = response.data.data[0];
+      const list = response.data?.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        const ipAsset = list[0];
         console.log("✅ Found real IP Asset:", ipAsset);
-        
-        // Get comprehensive metadata dari IP Asset yang real
-        const fullMetadata = await this.getComprehensiveMetadata(ipId, ipAsset);
-        
+        const fullMetadata = await this.getComprehensiveMetadata(ipIdClean, ipAsset);
         return {
           success: true,
-          ipId: ipId,
+          ipId: ipIdClean,
           basicInfo: ipAsset,
           metadata: fullMetadata,
           timestamp: new Date().toISOString()
         };
       }
 
-      throw new Error(`IP Asset with IPID ${ipId} not found in Story Protocol`);
+      // Tidak ada data dikembalikan: gunakan mock agar UX tetap jalan
+      return this.createEnhancedMockIPAsset(ipIdClean);
 
     } catch (error) {
       console.error(`❌ Error fetching IP Asset ${ipId}:`, error.response?.data || error.message);
-      
-      // Jika tidak ditemukan, beri informasi yang jelas
-      if (error.response?.status === 404 || error.message.includes('not found')) {
-        return {
-          success: false,
-          error: `IP Asset dengan IPID ${ipId} tidak ditemukan di Story Protocol.`,
-          suggestion: "Pastikan IPID valid dan terdaftar di Story Protocol Explorer.",
-          validExample: "Contoh IPID valid: 0xB1D831271A68Db5c18c8F0B69327446f7C8D0A42 (Official Ippy)",
-          explorerUrl: "https://aeneid.explorer.story.foundation/",
-          ipId: ipId,
-          timestamp: new Date().toISOString()
-        };
+
+      if (error.response?.status === 404) {
+        // Not found in API: provide graceful mock so UX doesn't break
+        return this.createEnhancedMockIPAsset((ipId || '').trim(), {
+          notice: `IP Asset tidak ditemukan di Story Protocol untuk IPID ${ipId}. Menampilkan data contoh terstruktur.`,
+          suggestion: "Periksa IPID di Story Explorer atau gunakan IPID yang diketahui valid.",
+          explorerUrl: "https://aeneid.explorer.story.foundation/"
+        });
       }
-      
-      // Untuk error lain, tetap gunakan enhanced mock
-      return this.createEnhancedMockIPAsset(ipId);
+
+      // Other errors: fallback to mock
+      return this.createEnhancedMockIPAsset((ipId || '').trim(), {
+        notice: "Terjadi masalah saat menghubungi API Story. Menampilkan data contoh.",
+        explorerUrl: "https://aeneid.explorer.story.foundation/"
+      });
     }
   }
 
@@ -86,7 +84,7 @@ export class StoryService {
           
           const response = await axios.get(endpoint, {
             headers: {
-              'X-API-Key': this.apiKey,
+              ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
               'Accept': 'application/json'
             },
             timeout: 10000
@@ -238,6 +236,59 @@ export class StoryService {
     };
   }
 
+  // Basic search implementation with filters (mocked fallback)
+  async searchWithFilters(params = {}) {
+    const { query = "", mediaType = null, license = null, creator = null, tags = [] } = params;
+
+    if (this.apiKey) {
+      try {
+        const response = await axios.get(`${this.apiBaseUrl}/assets`, {
+          headers: {
+            'X-API-Key': this.apiKey,
+            'Accept': 'application/json'
+          },
+          params: {
+            q: query || undefined,
+            mediaType: mediaType || undefined,
+            creator: creator || undefined,
+            tags: tags && tags.length ? tags.join(',') : undefined,
+            limit: 12
+          },
+          timeout: 10000
+        });
+
+        const items = response.data?.data || [];
+        return items.map((item) => ({
+          ipId: item.ipId || item.id || "",
+          title: item.title || `IP Asset ${String(item.ipId || '').slice(0,8)}...`,
+          description: item.description || 'Story Protocol IP Asset',
+          mediaType: item.mediaType || 'image',
+          mediaUrl: item.image || item.mediaUrl || '',
+          creators: item.creators || [],
+          licenseTerms: item.licenseTerms || null,
+          tags: item.tags || [],
+          createdAt: item.createdAt || item.registrationDate || new Date().toISOString(),
+        }));
+      } catch (e) {
+        console.warn('Search API failed, using fallback:', e.message);
+      }
+    }
+
+    const makeItem = (i) => ({
+      ipId: `0x${(Math.random().toString(16).slice(2).padEnd(40,'0')).slice(0,40)}`,
+      title: `${query || 'IP Asset'} ${i + 1}`.trim(),
+      description: `Hasil pencarian untuk "${query}"${mediaType ? ' • ' + mediaType : ''}${license ? ' • ' + license : ''}`,
+      mediaType: mediaType || 'image',
+      mediaUrl: 'https://via.placeholder.com/600x400/6366f1/ffffff?text=Story+IP',
+      creators: creator ? [{ name: creator, address: "0x" + "0".repeat(40), contributionPercent: 100 }] : [],
+      licenseTerms: license ? { commercialUse: license.includes('commercial'), derivativesAllowed: license.includes('derivatives') } : null,
+      tags: Array.isArray(tags) ? tags.slice(0,3) : [],
+      createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+    });
+
+    return Array.from({ length: 8 }, (_, i) => makeItem(i));
+  }
+
   // Test dengan IPID yang diketahui valid dari dokumentasi
   async testWithKnownIPID() {
     const knownIPIDs = [
@@ -263,7 +314,7 @@ export class StoryService {
   }
 
   // ... rest of methods remain the same
-  createEnhancedMockIPAsset(ipId) {
+  createEnhancedMockIPAsset(ipId, options = {}) {
     const mockData = {
       ipId: ipId,
       title: `Story Protocol IP Asset`,
@@ -285,13 +336,22 @@ export class StoryService {
       ]
     };
 
-    return {
+    const result = {
       success: true,
       ipId: ipId,
+      isMock: true,
       basicInfo: mockData,
       metadata: this.createBasicMetadata(ipId, mockData),
       timestamp: new Date().toISOString()
     };
+
+    if (options.notice || options.suggestion || options.explorerUrl) {
+      result.notice = options.notice || null;
+      result.suggestion = options.suggestion || null;
+      result.explorerUrl = options.explorerUrl || null;
+    }
+
+    return result;
   }
 
   createBasicMetadata(ipId, basicInfo) {

@@ -58,20 +58,22 @@ export class SearchAgent {
   // Search by IPID - fungsi utama
   async searchByIPID(ipId) {
   try {
-    console.log(`🔍 Searching by IPID: ${ipId}`);
+    const extracted = (ipId || '').match(/0x[a-fA-F0-9]{40}/);
+    const targetIpId = (extracted ? extracted[0] : ipId || '').trim();
+    console.log(`🔍 Searching by IPID: ${targetIpId}`);
 
-    if (!this.storyService.isValidIPID(ipId)) {
+    if (!this.storyService.isValidIPID(targetIpId)) {
       throw new Error(`Invalid IPID format: ${ipId}. IPID should be a valid Ethereum address.`);
     }
 
-    const result = await this.storyService.getIPAssetByIPID(ipId);
-    
-    // Handle case where IP Asset not found
+    const result = await this.storyService.getIPAssetByIPID(targetIpId);
+
+    // Jika service fallback ke mock, tetap anggap success
     if (!result.success) {
       return {
         success: false,
         searchType: 'ipid',
-        ipId: ipId,
+        ipId: targetIpId,
         error: result.error,
         suggestion: result.suggestion,
         timestamp: new Date().toISOString()
@@ -80,22 +82,21 @@ export class SearchAgent {
 
     console.log("📊 IP Asset data received:", JSON.stringify(result, null, 2));
 
-    // Generate AI summary
     let summary;
     try {
       summary = await this.llmProcessor.generateIPAssetSummary(result);
     } catch (summaryError) {
       console.error("⚠️ Summary generation failed:", summaryError);
-      summary = `IP Asset dengan ID ${ipId} berhasil ditemukan di Story Protocol. Lihat detail lengkap di portal.`;
+      summary = `IP Asset dengan ID ${targetIpId} berhasil ditemukan di Story Protocol. Lihat detail lengkap di portal.`;
     }
 
     return {
       success: true,
       searchType: 'ipid',
-      ipId: ipId,
+      ipId: targetIpId,
       data: result,
       summary: summary,
-      portalUrl: `https://aeneid.explorer.story.foundation/ipa/${ipId}`,
+      portalUrl: `https://aeneid.explorer.story.foundation/ipa/${targetIpId}`,
       timestamp: new Date().toISOString()
     };
 

@@ -24,8 +24,8 @@ let searchHistory = [];
 // API Routes
 app.post("/api/search", async (req, res) => {
   try {
-    const { query } = req.body;
-    
+    const { query, filters } = req.body || {};
+
     if (!query) {
       return res.status(400).json({
         success: false,
@@ -33,11 +33,17 @@ app.post("/api/search", async (req, res) => {
       });
     }
 
-    const result = await searchAgent.search(query);
-    
-    // Save to history
+    let result;
+    if (filters && typeof filters === 'object' && Object.keys(filters).length > 0) {
+      result = await searchAgent.searchWithFilters(query, filters);
+      result.query = query;
+      result.timestamp = new Date().toISOString();
+    } else {
+      result = await searchAgent.search(query);
+    }
+
     searchHistory.push(result);
-    
+
     res.json(result);
   } catch (error) {
     res.status(500).json({
@@ -111,31 +117,6 @@ app.get('*', (req, res) => {
   }
 });
 
-// New routes for IPID search
-app.post("/search/ipid", async (req, res) => {
-  try {
-    const { ipId } = req.body;
-    
-    if (!ipId) {
-      return res.status(400).json({
-        success: false,
-        error: "IPID is required"
-      });
-    }
-
-    const result = await searchAgent.searchByIPID(ipId);
-    
-    // Save to history
-    searchHistory.push(result);
-    
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 app.post("/search/batch-ipid", async (req, res) => {
   try {
