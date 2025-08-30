@@ -185,6 +185,7 @@ function autoResizeTextarea() {
 
 // Search Functionality
 async function handleSearch(e) {
+    ensureAppBackground();
     e.preventDefault();
 
     hideHero();
@@ -274,6 +275,7 @@ async function handleSearch(e) {
         showToast('Network error occurred', 'error');
     } finally {
         setLoading(false);
+        ensureAppBackground();
     }
 }
 
@@ -537,6 +539,16 @@ function setAppBackground(url) {
     appBgSet = true;
 }
 
+function ensureAppBackground() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    if (!app.classList.contains('has-bg')) app.classList.add('has-bg');
+    const val = getComputedStyle(document.documentElement).getPropertyValue('--app-bg-image');
+    if (!val || !val.trim()) {
+        document.documentElement.style.setProperty('--app-bg-image', `url("${DEFAULT_BG_URL}")`);
+    }
+}
+
 function addIPIDDetail(ipidResult, portalUrl) {
     const data = ipidResult.metadata?.portalData || {};
     const display = data.displayInfo || {};
@@ -574,6 +586,7 @@ function addIPIDDetail(ipidResult, portalUrl) {
 
     const bgUrl = display.image || display.mediaUrl || null;
     if (bgUrl) setAppBackground(bgUrl);
+    ensureAppBackground();
 
     scrollToBottom();
 }
