@@ -831,6 +831,21 @@ body {
     border-color: var(--primary-color);
 }
 
+/* Chips */
+.chip-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.chip {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.chip:hover { background: var(--background); color: var(--text-primary); }
+.chip.active { background: #dbeafe; border-color: var(--primary-color); color: #1e40af; }
+
 /* Buttons */
 .btn {
     display: inline-flex;
@@ -886,6 +901,18 @@ body {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
 }
+
+/* Drawer */
+.drawer { position: fixed; inset: 0; z-index: 1100; display: none; }
+.drawer.active { display: block; }
+.drawer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+.drawer-panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(420px, 92vw); background: var(--surface); border-left: 1px solid var(--border-color); box-shadow: var(--shadow-lg); transform: translateX(100%); transition: var(--transition); display: flex; flex-direction: column; }
+.drawer.active .drawer-panel { transform: translateX(0); }
+.drawer-header { display:flex; align-items:center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); }
+.drawer-body { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
+.filter-group h4 { font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-primary); }
+.drawer-input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface); color: var(--text-primary); }
+.filter-actions { display:flex; gap: 0.5rem; justify-content: flex-end; }
 
 /* Modals */
 .modal {
@@ -963,6 +990,10 @@ body {
     max-height: 60vh;
     overflow-y: auto;
 }
+
+/* Context Bar */
+.context-bar { display:flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding: 0.5rem 0; }
+.context-label { font-size: 0.8rem; color: var(--text-secondary); margin-right: 0.25rem; }
 
 /* Help Content */
 .help-content {
