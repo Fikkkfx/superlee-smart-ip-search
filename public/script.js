@@ -29,6 +29,32 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
 });
 
+function initializeTheme() {
+    const select = document.getElementById('theme-select');
+    if (!select) return;
+
+    const saved = localStorage.getItem('theme-preference') || 'auto';
+    select.value = saved;
+    applyTheme(saved);
+
+    select.addEventListener('change', () => {
+        const value = select.value;
+        localStorage.setItem('theme-preference', value);
+        applyTheme(value);
+    });
+}
+
+function applyTheme(mode) {
+    document.body.classList.remove('theme-dark', 'theme-light');
+    if (mode === 'dark') {
+        document.body.classList.add('theme-dark');
+    } else if (mode === 'light') {
+        document.body.classList.add('theme-light');
+    } else {
+        // auto: rely on prefers-color-scheme
+    }
+}
+
 async function initializeApp() {
     try {
         // Show loading screen
