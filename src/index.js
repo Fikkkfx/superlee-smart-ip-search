@@ -111,31 +111,6 @@ app.get('*', (req, res) => {
   }
 });
 
-// New routes for IPID search
-app.post("/search/ipid", async (req, res) => {
-  try {
-    const { ipId } = req.body;
-    
-    if (!ipId) {
-      return res.status(400).json({
-        success: false,
-        error: "IPID is required"
-      });
-    }
-
-    const result = await searchAgent.searchByIPID(ipId);
-    
-    // Save to history
-    searchHistory.push(result);
-    
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 app.post("/search/batch-ipid", async (req, res) => {
   try {
