@@ -102,7 +102,25 @@ body {
     flex-direction: column;
     height: 100vh;
     background: var(--background);
+    position: relative;
 }
+
+/* Background image overlay */
+.app.has-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: var(--app-bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Ensure content stays above background overlay */
+.header, .chat-container, .search-footer, .pixel-hero { position: relative; z-index: 1; }
 
 .hidden {
     display: none !important;
